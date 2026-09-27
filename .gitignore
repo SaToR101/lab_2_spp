@@ -11,3 +11,7 @@ backend/uploads/*
 .DS_Store
 .idea/
 .vscode/
+x64/
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
