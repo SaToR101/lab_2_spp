@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Менеджер элементов</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-glow"></div>
+    <div class="container">
+        <header class="header">
+            <h1>Управление элементами</h1>
+        </header>
+
+        <div id="alert" class="alert hidden"></div>
+
+        <form id="itemForm" class="card form-card">
+            <h2 id="formTitle">Добавить элемент</h2>
+            <input type="hidden" id="itemId">
+
+            <div class="form-group">
+                <label for="title">Заголовок</label>
+                <input type="text" id="title" placeholder="Введите название..." required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Описание</label>
+                <textarea id="description" rows="3" placeholder="Введите описание..." required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="file">Прикрепить файл</label>
+                <div class="file-input-wrapper">
+                    <input type="file" id="file">
+                </div>
+            </div>
+
+            <div id="currentFileContainer" class="form-group current-file-box hidden">
+                <div class="current-file-info">
+                    <span class="file-icon">📁</span>
+                    <span id="currentFileName">file.pdf</span>
+                </div>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="removeFileCheckbox">
+                    Удалить прикреплённый файл
+                </label>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" id="submitBtn" class="btn btn-primary">Сохранить</button>
+                <button type="button" id="cancelBtn" class="btn btn-secondary hidden">Отмена</button>
+            </div>
+        </form>
+
+        <div class="section-header">
+            <h2>Список записей</h2>
+        </div>
+        <div id="itemsContainer" class="items-grid"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

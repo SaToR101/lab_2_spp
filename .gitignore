@@ -1,0 +1,13 @@
+# Зависимости Node.js
+node_modules/
+npm-debug.log*
+
+# Загруженные пользователями файлы
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Переменные окружения и служебные файлы
+.env
+.DS_Store
+.idea/
+.vscode/
