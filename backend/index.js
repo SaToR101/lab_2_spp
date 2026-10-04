@@ -4,6 +4,9 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const { Pool } = require('pg');
+const authRoutes = require('./routes/authRoutes');
+const { verifyToken, checkRole } = require('./middleware/authMiddleware');
+const { loginLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -31,6 +34,8 @@ const upload = multer({ storage });
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(uploadDir));
+app.use('/api/auth/login', loginLimiter);
+app.use('/api/auth', authRoutes);
 
 const initDb = async (retries = 5) => {
   while (retries) {
@@ -53,19 +58,23 @@ const initDb = async (retries = 5) => {
 };
 initDb();
 
-app.get('/api/items', async (req, res) => {
+// GET — Доступен всем ролям (Guest: 1, User: 2, Admin: 3)
+app.get('/api/items', verifyToken, checkRole([1, 2, 3]), async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM items ORDER BY id DESC');
     res.status(200).json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: 'Ошибка БД' });
+    res.status(500).json({ error: 'Internal Server Error', message: 'Ошибка БД', code: 500 });
   }
 });
 
-app.post('/api/items', upload.single('file'), async (req, res) => {
+// POST — Доступен только авторизованным (User: 2, Admin: 3)
+app.post('/api/items', verifyToken, checkRole([2, 3]), upload.single('file'), async (req, res) => {
   try {
     const { title, description } = req.body;
-    if (!title || !description) return res.status(400).json({ error: 'Заполните поля' });
+    if (!title || !description) {
+      return res.status(400).json({ error: 'Bad Request', message: 'Заполните обязательные поля', code: 400 });
+    }
 
     const filePath = req.file ? `/uploads/${req.file.filename}` : null;
     const result = await pool.query(
@@ -74,27 +83,29 @@ app.post('/api/items', upload.single('file'), async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: 'Ошибка сохранения' });
+    res.status(500).json({ error: 'Internal Server Error', message: 'Ошибка сохранения', code: 500 });
   }
 });
 
-app.put('/api/items/:id', upload.single('file'), async (req, res) => {
+// PUT — Доступен только авторизованным (User: 2, Admin: 3)
+app.put('/api/items/:id', verifyToken, checkRole([2, 3]), upload.single('file'), async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, removeFile } = req.body;
-    if (!title || !description) return res.status(400).json({ error: 'Заполните поля' });
+    if (!title || !description) {
+      return res.status(400).json({ error: 'Bad Request', message: 'Заполните обязательные поля', code: 400 });
+    }
 
     const existing = await pool.query('SELECT * FROM items WHERE id = $1', [id]);
-    if (existing.rows.length === 0) return res.status(404).json({ error: 'Не найдено' });
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'Not Found', message: 'Элемент не найден', code: 404 });
+    }
 
     let filePath = existing.rows[0].file_path;
 
-    // 1. Если стоит галочка "Удалить файл"
     if (removeFile === 'true') {
       filePath = null;
-    } 
-    // 2. Если загрузили новый файл взамен старого
-    else if (req.file) {
+    } else if (req.file) {
       filePath = `/uploads/${req.file.filename}`;
     }
 
@@ -104,18 +115,21 @@ app.put('/api/items/:id', upload.single('file'), async (req, res) => {
     );
     res.status(200).json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: 'Ошибка обновления' });
+    res.status(500).json({ error: 'Internal Server Error', message: 'Ошибка обновления', code: 500 });
   }
 });
 
-app.delete('/api/items/:id', async (req, res) => {
+// DELETE — Доступен ТОЛЬКО Администратору (Admin: 3)
+app.delete('/api/items/:id', verifyToken, checkRole([3]), async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('DELETE FROM items WHERE id = $1 RETURNING *', [id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Не найдено' });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Not Found', message: 'Элемент не найден', code: 404 });
+    }
     res.status(200).json({ message: 'Удалено' });
   } catch (err) {
-    res.status(500).json({ error: 'Ошибка удаления' });
+    res.status(500).json({ error: 'Internal Server Error', message: 'Ошибка удаления', code: 500 });
   }
 });
 
