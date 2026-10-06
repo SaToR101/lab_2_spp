@@ -8,6 +8,7 @@ backend/uploads/*
 
 # Переменные окружения и служебные файлы
 .env
+!.env.example
 .DS_Store
 .idea/
 .vscode/
